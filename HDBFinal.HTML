@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมคำนวณภาระหนี้ DBR</title>
+    <style>
+        /* --- การตั้งค่าทั่วไปและ Font --- */
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+        
+        :root {
+            --primary-purple: #5E3A8A;
+            --dark-purple: #4A3F55;
+            --light-purple-bg: #f9f7fc;
+            --green-pass: #27ae60;
+            --red-fail: #e74c3c;
+            --border-color: #eae4f2;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--light-purple-bg);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Header --- */
+        .hero-header {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            background-image: url('background.png');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-align: center;
+            padding: 4rem 1.5rem;
+        }
+
+        .hero-header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(40, 26, 61, 0.45);
+            z-index: 1;
+        }
+
+        .hero-header h1 {
+            position: relative;
+            margin: 0 auto;
+            max-width: 350px; 
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+
+        /* --- โครงสร้างหลัก --- */
+        .main-container { width: 100%; }
+        .form-column { max-width: 600px; margin: 0 auto; }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        h2 {
+            font-size: 1.5em;
+            color: var(--dark-purple);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* --- ส่วนของฟอร์ม --- */
+        .input-group { margin-bottom: 15px; }
+
+        label { display: block; font-weight: bold; margin-bottom: 8px; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+            font-family: 'Sarabun', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 3px rgba(94, 58, 138, 0.2);
+        }
+        input.invalid {
+            border-color: var(--red-fail);
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
+        }
+        
+        .dynamic-input-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .dynamic-input-row input { flex-grow: 1; margin-right: 10px; }
+
+        .add-btn, .remove-btn {
+            border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer;
+            font-weight: bold; transition: background-color 0.2s, color 0.2s;
+        }
+        .add-btn { background-color: #D1C4E9; color: var(--primary-purple); }
+        .remove-btn { background-color: #f1f1f1; color: #777; }
+        .remove-btn:hover { background-color: var(--red-fail); color: white; }
+        
+        .total-display { font-size: 1.1em; font-weight: bold; text-align: right; margin-top: 10px; }
+
+        #calculate-btn {
+            display: block; width: 100%; padding: 15px; font-size: 1.3em;
+            font-weight: bold; background: linear-gradient(45deg, #6A4C93, var(--primary-purple));
+            color: white; border: none; border-radius: 8px; cursor: pointer;
+            margin: 30px 0; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(94, 58, 138, 0.3);
+        }
+
+        /* --- ส่วนแสดงผล --- */
+        #results-container {
+            display: none;
+            padding: 30px; margin-top: 40px; background-color: #fff;
+            border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        #results-container.visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .dbr-value { text-align: center; margin-bottom: 20px; }
+        .dbr-value h2 { 
+            border: none; 
+            display: flex; 
+            justify-content: center;
+            align-items: baseline; 
+            gap: 0.5em;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
+        
+        .summary-details { background-color: var(--light-purple-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-top: 25px; }
+        .summary-details p { display: flex; justify-content: space-between; margin: 10px 0; font-size: 1.1em; }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .hero-header { padding: 3rem 1rem; }
+            .container, #results-container { padding: 20px; }
+        }
+        
+        @media (max-width: 400px) {
+            .dbr-value h2 {
+                font-size: 1.1em;
+            }
+            .dbr-value h2 span {
+                font-size: 1.3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <header class="hero-header">
+        <h1>คำนวณภาระหนี้ (DBR)</h1>
+    </header>
+
+    <main class="main-container">
+        <div class="form-column">
+            <div class="container">
+                <div id="input-section">
+                    <h2>รายรับต่อเดือน</h2>
+                    <div class="input-group">
+                        <label for="main-income">เงินเดือน/รายได้หลัก</label>
+                        <input type="text" inputmode="numeric" id="main-income" placeholder="0">
+                    </div>
+                    <div id="income-list"></div>
+                    <button id="add-income-btn" class="add-btn">+ เพิ่มรายการรายรับ</button>
+                    <p class="total-display">รายรับรวม: <span style="color:green;" id="total-income">0</span> บาท</p>
+                </div>
+        
+                <div id="debt-section">
+                    <h2>ภาระผ่อนชำระปัจจุบันต่อเดือน</h2>
+                    <div class="input-group">
+                        <label for="main-debt">ภาระหนี้ (เช่น ผ่อนบ้าน/รถ/บัตรเครดิต)</label>
+                        <input type="text" inputmode="numeric" id="main-debt" placeholder="0">
+                    </div>
+                    <div id="debt-list"></div>
+                    <button id="add-debt-btn" class="add-btn">+ เพิ่มรายการหนี้สิน</button>
+                    <p class="total-display">ภาระหนี้ปัจจุบันรวม: <span style="color:red;" id="total-debt">0</span> บาท</p>
+                </div>
+        
+                <div id="new-loan-section">
+                    <h2>สินเชื่อใหม่ที่ต้องการขอ</h2>
+                    <div class="input-group">
+                        <label for="new-loan-installment">ค่างวดที่ต้องการผ่อน</label>
+                        <input type="text" inputmode="numeric" id="new-loan-installment" placeholder="0">
+                    </div>
+                </div>
+        
+                <button id="calculate-btn">คำนวณ DBR รวม</button>
+
+                <div id="results-container">
+                    <div class="dbr-value">
+                        <h2>DBR รวมของคุณคือ: <span id="dbr-result-value" style="font-size:1.5em;">0%</span></h2>
+                    </div>
+        
+                    <div class="summary-details">
+                        <h3>สรุปการคำนวณ</h3>
+                        <p><span>รายรับรวมต่อเดือน:</span> <strong id="summary-income">0 บาท</strong></p>
+                        <p><span>ภาระหนี้ปัจจุบัน:</span> <strong id="summary-current-debt">0 บาท</strong></p>
+                        <p><span>ค่างวดสินเชื่อใหม่:</span> <strong id="summary-new-loan">0 บาท</strong></p>
+                        <hr>
+                        <p><span>ภาระหนี้รวมทั้งหมด:</span> <strong id="summary-total-debt">0 บาท</strong></p>
+                        <p><span>DBR รวม:</span> <strong id="summary-dbr">0%</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addIncomeBtn = document.getElementById('add-income-btn');
+            const incomeList = document.getElementById('income-list');
+            const addDebtBtn = document.getElementById('add-debt-btn');
+            const debtList = document.getElementById('debt-list');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const resultsContainer = document.getElementById('results-container');
+            const mainIncomeInput = document.getElementById('main-income');
+            const mainDebtInput = document.getElementById('main-debt');
+            const newLoanInput = document.getElementById('new-loan-installment');
+
+            function formatNumberInput(inputElement) {
+                if (!inputElement) return;
+                let value = inputElement.value;
+                let numberValue = value.replace(/[^0-9]/g, '');
+                if (numberValue) {
+                    inputElement.value = parseInt(numberValue, 10).toLocaleString('en-US');
+                } else {
+                    inputElement.value = '';
+                }
+            }
+
+            function parseFormattedNumber(value) {
+                return parseFloat(value.replace(/,/g, '')) || 0;
+            }
+            
+            function addDynamicInput(container, placeholder) {
+                const row = document.createElement('div');
+                row.className = 'dynamic-input-row';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.inputMode = 'numeric';
+                input.placeholder = placeholder;
+                input.className = 'dynamic-input';
+                
+                input.addEventListener('input', () => {
+                    formatNumberInput(input);
+                    updateTotals();
+                });
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'ลบ';
+                removeBtn.className = 'remove-btn';
+                removeBtn.onclick = function() {
+                    row.remove();
+                    updateTotals();
+                };
+                row.appendChild(input);
+                row.appendChild(removeBtn);
+                container.appendChild(row);
+            }
+            
+            addDebtBtn.addEventListener('click', () => addDynamicInput(debtList, 'ภาระหนี้อื่นๆ'));
+            addIncomeBtn.addEventListener('click', () => addDynamicInput(incomeList, 'รายรับอื่นๆ'));
+
+            function updateTotals() {
+                let totalIncome = parseFormattedNumber(mainIncomeInput.value);
+                document.querySelectorAll('#income-list .dynamic-input').forEach(input => {
+                    totalIncome += parseFormattedNumber(input.value);
+                });
+                document.getElementById('total-income').textContent = totalIncome.toLocaleString('en-US');
+
+                let totalDebt = parseFormattedNumber(mainDebtInput.value);
+                document.querySelectorAll('#debt-list .dynamic-input').forEach(input => {
+                    totalDebt += parseFormattedNumber(input.value);
+                });
+                document.getElementById('total-debt').textContent = totalDebt.toLocaleString('en-US');
+            }
+
+            [mainIncomeInput, mainDebtInput, newLoanInput].forEach(input => {
+                input.addEventListener('input', () => {
+                    formatNumberInput(input);
+                    updateTotals();
+                });
+            });
+
+            mainIncomeInput.addEventListener('input', function() {
+                if(this.value.length > 0) {
+                    this.classList.remove('invalid');
+                }
+            });
+
+            calculateBtn.addEventListener('click', function() {
+                updateTotals();
+
+                const totalIncome = parseFormattedNumber(document.getElementById('total-income').textContent);
+                const currentDebt = parseFormattedNumber(document.getElementById('total-debt').textContent);
+                const newLoan = parseFormattedNumber(newLoanInput.value);
+
+                if (totalIncome === 0) {
+                    mainIncomeInput.classList.add('invalid');
+                    mainIncomeInput.focus();
+                    return;
+                } else {
+                    mainIncomeInput.classList.remove('invalid');
+                }
+
+                const totalDebtWithNewLoan = currentDebt + newLoan;
+                const dbr = (totalIncome > 0) ? (totalDebtWithNewLoan / totalIncome) * 100 : 0;
+
+                displayResults(dbr, totalIncome, currentDebt, newLoan, totalDebtWithNewLoan);
+            });
+
+            function displayResults(dbr, income, currentDebt, newLoan, totalDebt) {
+                resultsContainer.classList.add('visible');
+                document.getElementById('dbr-result-value').textContent = dbr.toFixed(2) + '%';
+                
+                document.getElementById('summary-income').textContent = income.toLocaleString() + ' บาท';
+                document.getElementById('summary-current-debt').textContent = currentDebt.toLocaleString() + ' บาท';
+                document.getElementById('summary-new-loan').textContent = newLoan.toLocaleString() + ' บาท';
+                document.getElementById('summary-total-debt').textContent = totalDebt.toLocaleString() + ' บาท';
+                document.getElementById('summary-dbr').textContent = dbr.toFixed(2) + '%';
+                
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>
